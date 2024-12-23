@@ -74,7 +74,7 @@ QUESTION_BANK = {
     "Java": [
         "What is the difference between JDK, JRE, and JVM?",
         "Explain the concept of OOP in Java.",
-        "What is the difference between 'equals()' and '==" in Java?",
+        "What is the difference between 'equals()' and '==' in java?",
         "What is garbage collection in Java?",
         "What are Java's access modifiers?",
         "What is multithreading in Java?",
