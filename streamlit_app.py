@@ -14,7 +14,7 @@ def load_question_bank(csv_file):
         question_bank[topic] = df[df['Topic'] == topic].to_dict(orient='records')
     return question_bank
 
-# Load the question bank
+QUESTION_BANK = 
 {
     "Python": [
         {
