@@ -1,0 +1,139 @@
+Topic,Question
+Python,What are Python decorators?
+Python,Explain the difference between deep copy and shallow copy in Python.
+Python,How does Python manage memory?
+Python,What is the Global Interpreter Lock (GIL)?
+Python,Explain list comprehensions in Python.
+Python,What are Python's key data types?
+Python,How do you handle exceptions in Python?
+Python,What are Python's built-in data structures?
+Python,Explain the use of 'self' in Python classes.
+Python,What is the difference between @staticmethod and @classmethod?
+Python,How do you manage packages and environments in Python?
+Python,What are Python's iterators and generators?
+Python,Explain multithreading and multiprocessing in Python.
+Python,What are Python's lambda functions?
+Python,How does Python handle garbage collection?
+
+Machine Learning,What is overfitting, and how can you prevent it?
+Machine Learning,Explain the difference between supervised and unsupervised learning.
+Machine Learning,What are the main assumptions of linear regression?
+Machine Learning,What is gradient descent?
+Machine Learning,Explain the concept of feature engineering.
+Machine Learning,What are common performance metrics for classification problems?
+Machine Learning,What is cross-validation, and why is it important?
+Machine Learning,Explain the bias-variance tradeoff.
+Machine Learning,What is a confusion matrix?
+Machine Learning,What are ensemble methods in machine learning?
+Machine Learning,What is a support vector machine (SVM)?
+Machine Learning,How do decision trees work?
+Machine Learning,What is the purpose of the k-nearest neighbors algorithm?
+Machine Learning,What is unsupervised clustering?
+Machine Learning,How does principal component analysis (PCA) work?
+
+C,What are pointers in C?
+C,Explain the difference between 'malloc' and 'calloc'.
+C,What is a null pointer?
+C,How does memory allocation work in C?
+C,What is the difference between 'struct' and 'union' in C?
+C,What is a segmentation fault?
+C,Explain the use of header files in C.
+C,What is recursion in C?
+C,What are storage classes in C?
+C,What is the difference between '++i' and 'i++'?
+C,What is the function of the 'static' keyword in C?
+C,How does a stack differ from a heap in C?
+C,What is the role of macros in C?
+C,What are bitwise operators in C?
+C,How do you handle strings in C?
+
+Behavioral Questions,Can you describe a time you worked in a team to achieve a goal?
+Behavioral Questions,How do you handle conflict in the workplace?
+Behavioral Questions,What is your greatest strength, and how has it helped you in your career?
+Behavioral Questions,Tell me about a time you failed and how you handled it.
+Behavioral Questions,How do you prioritize tasks when faced with multiple deadlines?
+Behavioral Questions,What motivates you to perform well at work?
+Behavioral Questions,Can you give an example of a time you went above and beyond?
+Behavioral Questions,How do you handle feedback from colleagues or supervisors?
+Behavioral Questions,Describe a time you had to learn something quickly.
+Behavioral Questions,What are your long-term career goals?
+
+Java,What is the difference between JDK, JRE, and JVM?
+Java,Explain the concept of OOP in Java.
+Java,What is the difference between 'equals()' and '==' in Java?
+Java,What is garbage collection in Java?
+Java,What are Java's access modifiers?
+Java,What is multithreading in Java?
+Java,What is the difference between 'ArrayList' and 'LinkedList'?
+Java,What are Java annotations?
+Java,What is the difference between 'String', 'StringBuilder', and 'StringBuffer'?
+Java,Explain exception handling in Java.
+Java,What is the purpose of the 'final' keyword in Java?
+Java,What is the Java Stream API?
+Java,What is the role of the 'synchronized' keyword in Java?
+Java,What is method overloading and method overriding in Java?
+Java,How does the Java Virtual Machine (JVM) work?
+
+DSA,What are the key differences between arrays and linked lists?
+DSA,Explain the concept of binary search.
+DSA,What is a stack, and where is it used?
+DSA,What is a queue, and how does it differ from a stack?
+DSA,Explain the concept of hash tables.
+DSA,What is a binary tree?
+DSA,What is the difference between BFS and DFS?
+DSA,What is a heap data structure?
+DSA,What is the time complexity of quicksort?
+DSA,Explain dynamic programming with an example.
+DSA,What is a graph, and how is it represented?
+DSA,What is a trie, and where is it used?
+DSA,What is the time complexity of binary search?
+DSA,How do you reverse a linked list?
+DSA,What is a circular linked list?
+
+Data Science,What is the CRISP-DM framework?
+Data Science,What are the key differences between supervised and unsupervised learning?
+Data Science,What is data wrangling?
+Data Science,What are common data visualization techniques?
+Data Science,Explain the concept of dimensionality reduction.
+Data Science,What is the difference between regression and classification?
+Data Science,What is A/B testing in data science?
+Data Science,What are the steps to preprocess data?
+Data Science,What is feature selection?
+Data Science,Explain the difference between data normalization and standardization.
+Data Science,What is the role of statistical hypothesis testing in data science?
+Data Science,How do you handle missing data in a dataset?
+Data Science,What is cross-validation, and why is it important?
+Data Science,What are outliers, and how do you handle them?
+Data Science,Explain the concept of bagging and boosting.
+
+AI,What is artificial intelligence?
+AI,Explain the Turing Test.
+AI,What is natural language processing (NLP)?
+AI,What are expert systems?
+AI,What is the difference between weak AI and strong AI?
+AI,Explain reinforcement learning.
+AI,What is the role of neural networks in AI?
+AI,What is a chatbot, and how does it work?
+AI,What are common challenges in AI development?
+AI,Explain ethical concerns related to AI.
+AI,What is transfer learning?
+AI,What are generative adversarial networks (GANs)?
+AI,How does computer vision work?
+AI,What is the importance of data in AI models?
+AI,What is explainability in AI?
+
+Cyber Security,What is the CIA triad in cybersecurity?
+Cyber Security,What is a firewall, and how does it work?
+Cyber Security,Explain the difference between symmetric and asymmetric encryption.
+Cyber Security,What is a DDoS attack?
+Cyber Security,What is two-factor authentication?
+Cyber Security,What is phishing, and how can it be prevented?
+Cyber Security,What is the role of penetration testing in cybersecurity?
+Cyber Security,What is the difference between a virus and a worm?
+Cyber Security,What is the purpose of a VPN?
+Cyber Security,Explain the concept of zero trust security.
+Cyber Security,What is a security incident response plan?
+Cyber Security,How does blockchain enhance cybersecurity?
+Cyber Security,What are the common types of malware?
+Cyber Security,How do you secure APIs?
+Cyber Security,What are OWASP Top 10 vulnerabilities?
