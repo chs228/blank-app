@@ -1,553 +1,750 @@
 import streamlit as st
-import PyPDF2
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+import re
+import io
+import base64
+import os
+import random
+from datetime import datetime
+from textblob import TextBlob, Word
+import json
 
-# Function to load the question bank from CSV
-def load_question_bank(csv_file):
-    df = pd.read_csv(csv_file)
-    question_bank = {}
-    for topic in df['Topic'].unique():
-        question_bank[topic] = df[df['Topic'] == topic].to_dict(orient='records')
-    return question_bank
+# Must be first
+st.set_page_config(page_title="Technical Interview Chatbot", layout="wide")
 
-QUESTION_BANK = {
-    "Python": [
-        {
-            "Question": "Which of the following is a Python data type?",
-            "Options": "Integer;String;Boolean;None",
-            "Answer": "String"
-        },
-        {
-            "Question": "Which of the following is used to define a method in Python?",
-            "Options": "def;function;method;procedure",
-            "Answer": "def"
-        },
-        {
-            "Question": "What is the output of `print(10 / 3)` in Python?",
-            "Options": "3;3.33;3.0;4",
-            "Answer": "3.3333333333333335"
-        },
-        {
-            "Question": "What does the `len()` function do in Python?",
-            "Options": "Returns the length of an object;Checks if the object is empty;Returns the data type of an object;Compares two objects",
-            "Answer": "Returns the length of an object"
-        },
-        {
-            "Question": "Which of the following is used to import a module in Python?",
-            "Options": "include;import;using;require",
-            "Answer": "import"
-        },
-        {
-            "Question": "What is the purpose of the `self` keyword in Python?",
-            "Options": "To refer to the instance of the class;To call another method in the class;To define a class variable;To reference an external module",
-            "Answer": "To refer to the instance of the class"
-        },
-        {
-            "Question": "Which of the following is a valid way to create a dictionary in Python?",
-            "Options": "dict = {};dict = []{};dict = set{};dict = (){}",
-            "Answer": "dict = {}"
-        },
-        {
-            "Question": "What is the default value of a boolean variable in Python?",
-            "Options": "True;False;0;null",
-            "Answer": "False"
-        },
-        {
-            "Question": "Which of the following is used to handle exceptions in Python?",
-            "Options": "try-catch;except-finally;do-catch;throw-catch",
-            "Answer": "except-finally"
-        },
-        {
-            "Question": "Which method is used to compare two strings in Python?",
-            "Options": "==;compareTo;equals;match",
-            "Answer": "=="
-        },
-        {
-            "Question": "Which of the following is used to add an element to a list in Python?",
-            "Options": "add();insert();append();push()",
-            "Answer": "append()"
-        },
-        {
-            "Question": "What is the output of `print(3 * 4)` in Python?",
-            "Options": "12;34;14;Error",
-            "Answer": "12"
-        },
-        {
-            "Question": "Which of the following is used to define a class in Python?",
-            "Options": "class;struct;def;module",
-            "Answer": "class"
-        },
-        {
-            "Question": "Which of the following is the correct way to create an object in Python?",
-            "Options": "object = new Object();obj = Object();obj = new Object();obj = Object()",
-            "Answer": "obj = Object()"
-        },
-        {
-            "Question": "What is the correct syntax to create a set in Python?",
-            "Options": "set = ();set = []{};set = {}{};set = ()",
-            "Answer": "set = {}"
-        },
-        {
-            "Question": "What is the output of `print(10 // 3)` in Python?",
-            "Options": "3;3.33;3.0;10",
-            "Answer": "3"
-        },
-        {
-            "Question": "Which of the following is used to declare a variable in Python?",
-            "Options": "let;var;int;None",
-            "Answer": "None"
-        },
-        {
-            "Question": "Which of the following data types is NOT mutable in Python?",
-            "Options": "List;Set;Tuple;Dictionary",
-            "Answer": "Tuple"
-        },
-        {
-            "Question": "What is the output of `print(\"Hello\" * 3)` in Python?",
-            "Options": "HelloHelloHello;Hello3;3Hello;Error",
-            "Answer": "HelloHelloHello"
-        },
-        {
-            "Question": "Which of the following is used to get the type of an object in Python?",
-            "Options": "type();class();object();gettype()",
-            "Answer": "type()"
-        },
-        {
-            "Question": "What is the correct syntax to define a function in Python?",
-            "Options": "def function_name():;function function_name();def;function",
-            "Answer": "def function_name():"
-        },
-        {
-            "Question": "Which of the following is a valid way to create a set in Python?",
-            "Options": "set = []{};set = {}{};set = set();set = {}",
-            "Answer": "set = set()"
-        },
-        {
-            "Question": "Which of the following is a valid list operation in Python?",
-            "Options": "append();add();insert();create()",
-            "Answer": "append()"
-        }
-    ],
-    "Java": [
-        {
-            "Question": "Which of the following is the correct way to declare a variable in Java?",
-            "Options": "int x = 10;let x = 10;var x = 10;x = 10",
-            "Answer": "int x = 10"
-        },
-        {
-            "Question": "What is the default value of a boolean variable in Java?",
-            "Options": "True;False;0;null",
-            "Answer": "False"
-        },
-        {
-            "Question": "Which of the following is used to define a method in Java?",
-            "Options": "function;def;void;method",
-            "Answer": "void"
-        },
-        {
-            "Question": "Which of the following is NOT a valid data type in Java?",
-            "Options": "int;double;boolean;text",
-            "Answer": "text"
-        },
-        {
-            "Question": "Which of the following is used to handle exceptions in Java?",
-            "Options": "try-catch;catch-finally;do-catch;throw-catch",
-            "Answer": "try-catch"
-        },
-        {
-            "Question": "What is the purpose of the `final` keyword in Java?",
-            "Options": "To define constants;To create a subclass;To create an interface;To initialize variables",
-            "Answer": "To define constants"
-        },
-        {
-            "Question": "Which of the following is the correct way to create an object in Java?",
-            "Options": "object = new Object();Object obj = new Object();obj = new Object();new Object();",
-            "Answer": "Object obj = new Object();"
-        },
-        {
-            "Question": "Which method is used to compare two strings in Java?",
-            "Options": "==;compareTo;equals;match",
-            "Answer": "equals"
-        },
-        {
-            "Question": "What is the size of an `int` in Java?",
-            "Options": "16 bytes;32 bytes;64 bytes;8 bytes",
-            "Answer": "32 bytes"
-        },
-        {
-            "Question": "What does the `static` keyword mean in Java?",
-            "Options": "The variable is shared among all instances of the class;The method is private;The variable is local to a method;The class is abstract",
-            "Answer": "The variable is shared among all instances of the class"
-        },
-        {
-            "Question": "What is the superclass of every class in Java?",
-            "Options": "Object;Class;Super;Exception",
-            "Answer": "Object"
-        },
-        {
-            "Question": "Which of the following methods is used to obtain the length of an array in Java?",
-            "Options": "length;size;length();size()",
-            "Answer": "length"
-        },
-        {
-            "Question": "Which of the following is a valid identifier in Java?",
-            "Options": "int 1x;int $x;int &x;int x$",
-            "Answer": "int $x"
-        },
-        {
-            "Question": "Which collection class in Java allows elements to be accessed by index?",
-            "Options": "ArrayList;HashSet;HashMap;LinkedList",
-            "Answer": "ArrayList"
-        },
-        {
-            "Question": "What is the correct syntax for calling a method in Java?",
-            "Options": "methodName();method();methodName;method(){}",
-            "Answer": "method();"
-        },
-        {
-            "Question": "Which of the following is used to import a class in Java?",
-            "Options": "import;include;use;importFrom",
-            "Answer": "import"
-        },
-        {
-            "Question": "Which of the following is an access modifier in Java?",
-            "Options": "public;default;static;final",
-            "Answer": "public"
-        },
-        {
-            "Question": "Which of the following classes is used to handle input from the user in Java?",
-            "Options": "Scanner;InputStream;BufferedReader;Console",
-            "Answer": "Scanner"
-        },
-        {
-            "Question": "What is the output of `System.out.println(10 / 3)` in Java?",
-            "Options": "3;3.33;3.0;10",
-            "Answer": "3"
-        },
-        {
-            "Question": "Which of the following is NOT a valid constructor in Java?",
-            "Options": "public MyClass();private MyClass();MyClass();MyClass(int x)",
-            "Answer": "MyClass();"
-        },
-        {
-            "Question": "Which method is used to find the square root of a number in Java?",
-            "Options": "sqrt();Math.sqrt();sqrt;Math.pow()",
-            "Answer": "Math.sqrt()"
-        },
-        {
-            "Question": "Which of the following is used to create a thread in Java?",
-            "Options": "Thread.run();Thread.start();Thread.create();Thread.new()",
-            "Answer": "Thread.start()"
-        },
-        {
-            "Question": "Which of the following is a wrapper class in Java?",
-            "Options": "String;Integer;Character;Double",
-            "Answer": "Integer"
-        }
-    ],
-    "C": [
-        {
-            "Question": "Which of the following is the correct syntax to declare a variable in C?",
-            "Options": "int x = 10;let x = 10;var x = 10;x = 10",
-            "Answer": "int x = 10"
-        },
-        {
-            "Question": "Which of the following is used to get the size of a data type in C?",
-            "Options": "sizeof;length;sizeofof;typeSize",
-            "Answer": "sizeof"
-        },
-        {
-            "Question": "Which data type is used to store a character in C?",
-            "Options": "int;char;string;double",
-            "Answer": "char"
-        },
-        {
-            "Question": "What is the default value of an uninitialized integer variable in C?",
-            "Options": "0;undefined;null;random",
-            "Answer": "undefined"
-        },
-        {
-            "Question": "Which of the following is a valid comment in C?",
-            "Options": "//This is a comment;#This is a comment;<!-- This is a comment -->;*/This is a comment*/",
-            "Answer": "//This is a comment"
-        },
-        {
-            "Question": "Which operator is used for logical AND in C?",
-            "Options": "&&;&;|;AND",
-            "Answer": "&&"
-        },
-        {
-            "Question": "What is the correct way to include a standard library in C?",
-            "Options": "#include <stdio.h>;import <stdio.h>;using namespace <stdio.h>;import <stdio>",
-            "Answer": "#include <stdio.h>"
-        },
-        {
-            "Question": "Which of the following is used to declare a pointer in C?",
-            "Options": "int* ptr;ptr* int;int ptr*;ptr int*",
-            "Answer": "int* ptr"
-        },
-        {
-            "Question": "Which function is used to read a string from user input in C?",
-            "Options": "scanf;gets;read;fgets",
-            "Answer": "gets"
-        },
-        {
-            "Question": "Which of the following functions is used to print output in C?",
-            "Options": "print;echo;printf;output",
-            "Answer": "printf"
-        },
-        {
-            "Question": "What is the size of a pointer in C?",
-            "Options": "4 bytes;8 bytes;16 bytes;It depends on the system",
-            "Answer": "It depends on the system"
-        },
-        {
-            "Question": "Which of the following data types is used for floating-point numbers in C?",
-            "Options": "int;float;double;char",
-            "Answer": "float"
-        },
-        {
-            "Question": "Which of the following is the correct way to define a function in C?",
-            "Options": "void func();function(){};def func();func(){}",
-            "Answer": "void func();"
-        },
-        {
-            "Question": "What is the correct syntax for an if statement in C?",
-            "Options": "if (condition) {};if condition {};;if (condition);if condition;",
-            "Answer": "if (condition) {}"
-        },
-        {
-            "Question": "What does the `break` statement do in C?",
-            "Options": "Exits the loop;Skips to the next iteration;Halts the program;Exits the function",
-            "Answer": "Exits the loop"
-        },
-        {
-            "Question": "Which of the following is the correct way to declare a constant in C?",
-            "Options": "const int x = 10;int const x = 10;#define x 10;constant int x = 10",
-            "Answer": "const int x = 10"
-        },
-        {
-            "Question": "Which of the following is used to allocate memory dynamically in C?",
-            "Options": "malloc;new;alloc;resize",
-            "Answer": "malloc"
-        },
-        {
-            "Question": "What is the output of the following C code: `printf(\"%d\", 5 + 3);`?",
-            "Options": "5;8;53;Error",
-            "Answer": "8"
-        },
-        {
-            "Question": "Which of the following is NOT a valid loop type in C?",
-            "Options": "while;for;repeat;do-while",
-            "Answer": "repeat"
-        },
-        {
-            "Question": "What is the correct syntax for a switch case statement in C?",
-            "Options": "switch(expression) {case x:;switch(x) {};;case x:;}switch(x) {case;}",
-            "Answer": "switch(expression) {case x:;}"
-        },
-        {
-            "Question": "Which of the following is used to return a value from a function in C?",
-            "Options": "return;exit;finish;end",
-            "Answer": "return"
-        },
-        {
-            "Question": "What is the correct syntax to declare an array in C?",
-            "Options": "int arr[10];arr[10];int arr;array[] = {1,2,3};",
-            "Answer": "int arr[10];"
-        }
-    ],
-    "Behavioral Questions": [
-        {
-            "Question": "Tell me about a time you overcame a difficult challenge.",
-            "Options": "Talk about a project;Discuss your skills;Focus on teamwork;Discuss a personal challenge",
-            "Answer": "Talk about a project"
-        },
-        {
-            "Question": "How do you handle conflict with a colleague?",
-            "Options": "Avoid it;Argue and defend my point;Try to understand their point of view and find common ground;Stay quiet",
-            "Answer": "Try to understand their point of view and find common ground"
-        },
-        {
-            "Question": "Describe a situation where you had to work under pressure.",
-            "Options": "Talk about deadlines;Focus on your time management;Mention stress management;Discuss multitasking",
-            "Answer": "Talk about deadlines"
-        },
-        {
-            "Question": "What is your greatest strength?",
-            "Options": "Leadership;Time management;Problem-solving;Teamwork",
-            "Answer": "Problem-solving"
-        },
-        {
-            "Question": "Where do you see yourself in five years?",
-            "Options": "A leadership role;Growing professionally;In the same position;Continuously learning and improving",
-            "Answer": "Continuously learning and improving"
-        },
-        {
-            "Question": "How do you prioritize tasks?",
-            "Options": "By importance;By deadline;By difficulty;I don't prioritize",
-            "Answer": "By importance"
-        },
-        {
-            "Question": "How do you deal with constructive criticism?",
-            "Options": "Accept it positively;Defend yourself;Ignore it;Feel offended",
-            "Answer": "Accept it positively"
-        },
-        {
-            "Question": "Give me an example of a time you worked on a team.",
-            "Options": "Discuss collaboration;Talk about leadership;Focus on teamwork skills;Describe a solo project",
-            "Answer": "Discuss collaboration"
-        },
-        {
-            "Question": "What motivates you to perform well?",
-            "Options": "Financial rewards;Personal growth;Recognition from peers;Challenge",
-            "Answer": "Personal growth"
-        },
-        {
-            "Question": "Describe a time when you had to learn a new skill quickly.",
-            "Options": "Mention a course;Discuss an on-the-job experience;Talk about a personal project;Explain a technical skill",
-            "Answer": "Discuss an on-the-job experience"
-        }
-    ]
+# Dependencies
+try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
+    st.error("PyPDF2 missing. Install with: pip install PyPDF2")
+
+try:
+    import docx
+except ImportError:
+    docx = None
+    st.error("python-docx missing. Install with: pip install python-docx")
+
+from fpdf import FPDF
+
+# Skill definitions
+COMMON_SKILLS = {
+    'programming': ['python', 'java', 'javascript', 'html', 'css', 'c++', 'c#', 'ruby', 'php', 'sql'],
+    'frameworks': ['react', 'angular', 'vue', 'django', 'flask', 'spring', 'node.js', 'express', '.net'],
+    'databases': ['sql', 'mysql', 'postgresql', 'mongodb', 'oracle', 'sqlite', 'redis'],
+    'cloud': ['aws', 'azure', 'gcp', 'docker', 'kubernetes'],
+    'tools': ['git', 'github', 'jira', 'jenkins', 'agile', 'scrum'],
 }
 
-# Function to extract text from the uploaded PDF resume
+# Question bank
+TECHNICAL_QUESTIONS = {
+    'python': [
+        {"question": "Explain Python decorators with an example.", 
+         "expected_keywords": ["function", "wrapper", "decorator", "@", "arguments", "return"]},
+        {"question": "How do you handle exceptions in Python?", 
+         "expected_keywords": ["try", "except", "finally", "raise", "error", "handling"]},
+        {"question": "What are list comprehensions in Python?", 
+         "expected_keywords": ["list", "comprehension", "concise", "loop", "condition", "performance"]},
+        {"question": "Explain Python generators and their benefits.", 
+         "expected_keywords": ["generator", "yield", "iterator", "memory", "lazy", "evaluation"]},
+        {"question": "How does Python manage memory?", 
+         "expected_keywords": ["garbage collection", "reference", "counting", "memory", "del"]},
+    ],
+    'java': [
+        {"question": "What is inheritance in Java?", 
+         "expected_keywords": ["extends", "class", "parent", "child", "super", "override"]},
+        {"question": "How does Java handle memory management?", 
+         "expected_keywords": ["garbage collection", "heap", "stack", "reference", "finalize"]},
+        {"question": "Explain Java streams API.", 
+         "expected_keywords": ["stream", "functional", "map", "filter", "collect", "pipeline"]},
+        {"question": "What is synchronization in Java threads?", 
+         "expected_keywords": ["synchronized", "thread", "lock", "monitor", "concurrency"]},
+        {"question": "Describe Java's Optional class.", 
+         "expected_keywords": ["optional", "null", "avoid", "check", "orElse", "present"]},
+    ],
+    'javascript': [
+        {"question": "What are closures in JavaScript?", 
+         "expected_keywords": ["function", "scope", "variable", "closure", "lexical", "access"]},
+        {"question": "Explain event delegation in JavaScript.", 
+         "expected_keywords": ["event", "delegation", "bubble", "target", "listener", "parent"]},
+        {"question": "What are promises and async/await?", 
+         "expected_keywords": ["promise", "async", "await", "resolve", "reject", "asynchronous"]},
+        {"question": "How does the JavaScript event loop work?", 
+         "expected_keywords": ["event loop", "call stack", "queue", "async", "callback"]},
+        {"question": "Difference between let, const, and var?", 
+         "expected_keywords": ["scope", "let", "const", "var", "block", "hoisting"]},
+    ],
+    'sql': [
+        {"question": "What's the difference between INNER and LEFT JOIN?", 
+         "expected_keywords": ["inner", "left", "join", "matching", "all", "records"]},
+        {"question": "How do you optimize a slow SQL query?", 
+         "expected_keywords": ["index", "execution plan", "query", "optimize", "performance"]},
+        {"question": "What are SQL triggers?", 
+         "expected_keywords": ["trigger", "event", "table", "insert", "update", "delete"]},
+        {"question": "Explain ACID properties.", 
+         "expected_keywords": ["atomicity", "consistency", "isolation", "durability", "transaction"]},
+        {"question": "What is a CTE in SQL?", 
+         "expected_keywords": ["common table expression", "with", "query", "temporary", "recursive"]},
+    ],
+    'aws': [
+        {"question": "What's the difference between EC2 and Lambda?", 
+         "expected_keywords": ["instance", "serverless", "EC2", "Lambda", "scaling", "compute"]},
+        {"question": "How do you secure an AWS environment?", 
+         "expected_keywords": ["IAM", "security group", "encryption", "access", "policy"]},
+        {"question": "What is AWS S3 used for?", 
+         "expected_keywords": ["S3", "storage", "bucket", "object", "access", "policy"]},
+        {"question": "Explain VPC components.", 
+         "expected_keywords": ["VPC", "subnet", "route table", "gateway", "security group"]},
+        {"question": "What is AWS CloudFormation?", 
+         "expected_keywords": ["CloudFormation", "template", "infrastructure", "stack", "provision"]},
+    ],
+}
+
+GENERIC_QUESTIONS = [
+    {"question": "Describe a technical challenge you solved.", 
+     "expected_keywords": ["challenge", "project", "solution", "overcome", "team", "result"]},
+    {"question": "How do you stay updated with technology?", 
+     "expected_keywords": ["learning", "research", "practice", "community", "courses"]},
+    {"question": "What's your approach to debugging?", 
+     "expected_keywords": ["debugging", "logs", "breakpoint", "systematic", "testing", "root cause"]},
+    {"question": "How do you prioritize project tasks?", 
+     "expected_keywords": ["prioritize", "deadline", "impact", "stakeholder", "planning"]},
+    {"question": "Explain a time you improved a process.", 
+     "expected_keywords": ["process", "improvement", "efficiency", "solution", "impact"]},
+]
+
+# Messages
+WELCOME_MESSAGES = [
+    "Welcome to TechInterviewBot! Let's practice your technical skills.",
+    "Hello! Ready for a technical interview? I'm here to help.",
+    "Hi! Let's sharpen your interview skills with tailored questions.",
+]
+
+RESUME_PROMPTS = [
+    "Upload your resume or paste its content to start.",
+    "Share your resume to tailor the interview questions.",
+    "I need your resume to generate relevant questions.",
+]
+
+SKILL_MESSAGES = [
+    "Great! Here are the skills I found in your resume:",
+    "Thanks! I've identified these skills from your resume:",
+    "Based on your resume, here are your key skills:",
+]
+
+INTERVIEW_START_MESSAGES = [
+    "Let's start with questions based on your skills!",
+    "Ready? Here come some technical questions!",
+    "The interview begins with tailored questions.",
+]
+
+QUESTION_TRANSITIONS = [
+    "Next question:",
+    "Here's another one:",
+    "Moving on:",
+]
+
+EVALUATION_POSITIVE = [
+    "Great answer! You hit the key points.",
+    "Excellent! Your response was clear and accurate.",
+    "Well done! That was a strong answer.",
+]
+
+EVALUATION_AVERAGE = [
+    "Good try! You covered some points, but there's room to grow.",
+    "Decent answer, but you could add more detail.",
+    "Not bad! Try expanding on the concepts.",
+]
+
+EVALUATION_NEEDS_IMPROVEMENT = [
+    "You missed some key concepts. Let's review those.",
+    "Needs more depth. Want some pointers?",
+    "Try including more technical details.",
+]
+
+# Text sanitization for PDF
+def sanitize_text(text):
+    if not text:
+        return ""
+    replacements = {
+        '\u2019': "'", '\u2018': "'", '\u201c': '"', '\u201d': '"', '\u2013': '-', '\u2014': '--',
+    }
+    for unicode_char, ascii_char in replacements.items():
+        text = text.replace(unicode_char, ascii_char)
+    return text.encode('ascii', 'ignore').decode('ascii')
+
+# NLP functions using TextBlob
+def preprocess_text(text):
+    try:
+        blob = TextBlob(text.lower())
+        tokens = [Word(word).lemmatize() for word in blob.words if word.isalnum()]
+        stop_words = {'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he', 
+                      'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'were', 'will', 'with'}
+        tokens = [t for t in tokens if t not in stop_words]
+        return " ".join(tokens)
+    except Exception:
+        return text.lower()
+
+def extract_skills(text):
+    if not text:
+        return {}
+    
+    try:
+        raw_text = text.lower()
+        blob = TextBlob(raw_text)
+        identified_skills = {}
+        debug_matches = []
+        
+        context_patterns = r'(?:skills|experience|proficient in|worked with|knowledge of|using|expertise in)'
+        
+        for category, skill_list in COMMON_SKILLS.items():
+            found_skills = set()
+            for skill in skill_list:
+                pattern = rf'{context_patterns}\s*[^.\n]*\b{re.escape(skill)}\b[^.\n]*'
+                matches = re.finditer(pattern, raw_text)
+                for match in matches:
+                    context = match.group()
+                    if skill in [Word(w).lemmatize() for w in TextBlob(context).words]:
+                        found_skills.add(skill)
+                        debug_matches.append(f"Matched '{skill}' in: '{context[:50]}...'")
+            if found_skills:
+                identified_skills[category] = list(found_skills)
+        
+        st.session_state.debug_skills = debug_matches
+        st.session_state.raw_resume_text = raw_text
+        return identified_skills
+    except Exception:
+        identified_skills = {}
+        for category, skill_list in COMMON_SKILLS.items():
+            found_skills = set()
+            for skill in skill_list:
+                pattern = rf'{context_patterns}\s*[^.\n]*\b{re.escape(skill)}\b[^.\n]*'
+                if re.search(pattern, text.lower()):
+                    found_skills.add(skill)
+            if found_skills:
+                identified_skills[category] = list(found_skills)
+        return identified_skills
+
+# Keyword-based answer evaluation
+def evaluate_answer(question, answer, expected_keywords):
+    if not answer.strip():
+        return {"score": 0, "feedback": "No answer provided.", "missing_concepts": expected_keywords}
+    
+    try:
+        processed_answer = preprocess_text(answer)
+        matched_keywords = [kw for kw in expected_keywords if kw in processed_answer]
+        score = (len(matched_keywords) / len(expected_keywords)) * 100 if expected_keywords else 0
+        missing_concepts = [kw for kw in expected_keywords if kw not in matched_keywords]
+        
+        if score >= 80:
+            feedback = "Your answer covered most expected concepts."
+        elif score >= 50:
+            feedback = "You mentioned some key points, but could elaborate more."
+        else:
+            feedback = "Your answer missed several important concepts."
+        
+        return {
+            "score": round(score, 1),
+            "feedback": feedback,
+            "missing_concepts": missing_concepts
+        }
+    except Exception as e:
+        return {
+            "score": 0,
+            "feedback": f"Evaluation error: {str(e)}",
+            "missing_concepts": expected_keywords
+        }
+
+# File processing
 def extract_text_from_pdf(pdf_file):
-    reader = PyPDF2.PdfReader(pdf_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
+    if PyPDF2 is None:
+        return ""
+    try:
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
+        return "".join(page.extract_text() or "" for page in pdf_reader.pages)
+    except Exception:
+        return ""
 
-# Function to extract skills from the resume text
-def extract_skills(resume_text):
-    skills = []
-    keywords = list(QUESTION_BANK.keys())
-    for keyword in keywords:
-        if keyword.lower() in resume_text.lower():
-            skills.append(keyword)
-    return skills
+def extract_text_from_docx(docx_file):
+    if docx is None:
+        return ""
+    try:
+        doc = docx.Document(docx_file)
+        return "\n".join(paragraph.text for paragraph in doc.paragraphs)
+    except Exception:
+        return ""
 
-# Function to simulate chatbot interview
-def ask_questions(skills):
-    questions = []
-    for skill in skills:
-        if skill in QUESTION_BANK:
-            for q in QUESTION_BANK[skill]:
-                questions.append(q)
-    return questions
+# Question generation
+def generate_technical_questions(skills, max_questions=5):
+    all_possible_questions = []
+    all_skills = [skill for category, skill_list in skills.items() for skill in skill_list]
+    
+    selected_skills = random.sample(all_skills, min(len(all_skills), 3)) if all_skills else []
+    
+    for skill in selected_skills:
+        if skill in TECHNICAL_QUESTIONS:
+            all_possible_questions.extend(random.sample(TECHNICAL_QUESTIONS[skill], min(2, len(TECHNICAL_QUESTIONS[skill]))))
+    
+    remaining_slots = max_questions - len(all_possible_questions)
+    if remaining_slots > 0:
+        all_possible_questions.extend(random.sample(GENERIC_QUESTIONS, min(remaining_slots, len(GENERIC_QUESTIONS))))
+        remaining_slots = max_questions - len(all_possible_questions)
+    
+    if remaining_slots > 0:
+        other_questions = [q for skill in TECHNICAL_QUESTIONS if skill not in selected_skills for q in TECHNICAL_QUESTIONS[skill]]
+        all_possible_questions.extend(random.sample(other_questions, min(remaining_slots, len(other_questions))))
+    
+    random.shuffle(all_possible_questions)
+    
+    unique_questions = []
+    question_texts = set()
+    for q in all_possible_questions:
+        if q["question"] not in question_texts:
+            unique_questions.append(q)
+            question_texts.add(q["question"])
+    
+    return unique_questions[:max_questions]
 
-# Function to distribute questions equally among identified skills
-def distribute_questions_equally(skills):
-    total_questions = len(skills)
-    all_questions = []
-    for skill in skills:
-        questions = QUESTION_BANK[skill]
-        all_questions.extend(questions)
-    return all_questions[:total_questions]
-
-# Function to visualize progress
-def visualize_progress(user_responses, questions):
-    question_counts = {}
-    for i, response in enumerate(user_responses):
-        if isinstance(response, tuple):  # MCQ case
-            answer, correct_answer = response
-            if answer == correct_answer:
-                question_counts[questions[i]['Question']] = "Correct"
-            else:
-                question_counts[questions[i]['Question']] = "Incorrect"
-        else:  # Text response case
-            if response.strip():
-                vectorizer = CountVectorizer().fit_transform([questions[i]['Question'], response])
-                vectors = vectorizer.toarray()
-                similarity = cosine_similarity(vectors)[0, 1]
-                if similarity > 0.5:
-                    question_counts[questions[i]['Question']] = "Correct"
-                else:
-                    question_counts[questions[i]['Question']] = "Incorrect"
-            else:
-                question_counts[questions[i]['Question']] = "No Answer"
-
-    # Visualization
-    data = pd.DataFrame(list(question_counts.items()), columns=["Question", "Status"])
-    plt.figure(figsize=(10, 6))
-    sns.countplot(x="Status", data=data)
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-
-    st.pyplot()
-
-# Streamlit UI
-st.title("Job Interview Preparation Chatbot")
-
-st.sidebar.header("Upload Your Resume")
-resume_file = st.sidebar.file_uploader("Upload your resume (PDF format only)", type=["pdf"])
-
-if resume_file:
-    st.sidebar.success("Resume uploaded successfully!")
-    resume_text = extract_text_from_pdf(resume_file)
-
-    # Extract skills from the resume
-    skills = extract_skills(resume_text)
-
-    if skills:
-        st.write("### Skills Identified from Your Resume:")
-        st.write(", ".join(skills))
-
-        # Distribute questions equally among skills
-        questions = distribute_questions_equally(skills)
-
-        st.write("### Interview Questions:")
-        user_responses = []
-        for i, question in enumerate(questions):
-            st.write(f"**Q{i+1}: {question['Question']}**")
-
-            # Check if the question has options (MCQ)
-            if question["Options"]:
-                options = question["Options"].split(';')
-                answer = st.radio(f"Choose an answer for Q{i+1}:", options)
-                user_responses.append((answer, question['Answer']))
-            else:
-                response = st.text_area(f"Your Answer to Q{i+1}:", key=f"response_{i}")
-                user_responses.append(response)
-
-        if st.button("Submit Answers"):
-            st.write("### Feedback on Your Responses:")
-            for i, response in enumerate(user_responses):
-                if isinstance(response, tuple):  # MCQ case
-                    answer, correct_answer = response
-                    if answer == correct_answer:
-                        st.success(f"Q{i+1}: Correct! Your answer is {answer}.")
-                    else:
-                        st.warning(f"Q{i+1}: Incorrect. The correct answer is {correct_answer}.")
-                else:  # Text response case
-                    if response.strip():
-                        vectorizer = CountVectorizer().fit_transform([questions[i]['Question'], response])
-                        vectors = vectorizer.toarray()
-                        similarity = cosine_similarity(vectors)[0, 1]
-                        if similarity > 0.5:
-                            st.success(f"Great answer for Q{i+1}! Your response is relevant.")
-                        else:
-                            st.warning(f"Q{i+1}: Your response could be improved. Consider addressing key points directly.")
-                    else:
-                        st.error(f"Q{i+1}: No answer provided.")
-
-            # Show performance visualization
-            st.write("### Your Performance Visualization:")
-            visualize_progress(user_responses, questions)
-
-            # Retry or Upload a New Resume
-            if st.button("Retry with the Same Resume"):
-                st.experimental_rerun()
-
-            if st.button("Try a Different Resume"):
-                st.session_state.clear()
-                st.experimental_rerun()
-
+def get_feedback_message(score):
+    if score >= 80:
+        return random.choice(EVALUATION_POSITIVE)
+    elif score >= 60:
+        return random.choice(EVALUATION_AVERAGE)
     else:
-        st.error("No skills identified from your resume. Please ensure your resume highlights your technical and soft skills.")
-else:
-    st.sidebar.info("Please upload your resume to get started.")
+        return random.choice(EVALUATION_NEEDS_IMPROVEMENT)
+
+def format_skills_message(skills):
+    return "\n".join(f"**{category.capitalize()}**: {', '.join(skill_list)}" for category, skill_list in skills.items())
+
+# PDF export
+def export_results_as_pdf(interview_record):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Technical Interview Results", ln=True, align="C")
+    pdf.ln(5)
+    
+    candidate_name = sanitize_text(interview_record.get("candidate_name", "Candidate"))
+    interview_date = interview_record.get("date", datetime.now().strftime("%Y-%m-%d %H:%M"))
+    evaluations = interview_record.get("evaluations", {})
+    total_score = sum(data["evaluation"].get("score", 0) for data in evaluations.values())
+    avg_score = total_score / len(evaluations) if evaluations else 0
+    rating = "Excellent" if avg_score >= 85 else "Good" if avg_score >= 70 else "Average" if avg_score >= 50 else "Needs Improvement"
+    skills = interview_record.get("skills", {})
+    questions = interview_record.get("questions", [])
+    
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, f"Candidate: {candidate_name}", ln=True)
+    pdf.cell(0, 10, f"Date: {interview_date}", ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Summary", ln=True)
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 10, f"Overall Score: {avg_score:.1f}/100", ln=True)
+    pdf.cell(0, 10, f"Rating: {rating}", ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Skills", ln=True)
+    pdf.set_font("Arial", "", 12)
+    for category, skill_list in skills.items():
+        pdf.set_font("Arial", "B", 12)
+        pdf.cell(0, 10, category.capitalize(), ln=True)
+        pdf.set_font("Arial", "", 12)
+        pdf.multi_cell(0, 10, ", ".join(sanitize_text(skill) for skill in skill_list))
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(0, 10, "Questions and Evaluations", ln=True)
+    for i, q in enumerate(questions):
+        if q['question'] in evaluations:
+            data = evaluations[q['question']]
+            evaluation = data["evaluation"]
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 10, f"Question {i+1}: {sanitize_text(q['question'])}", ln=True)
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 10, f"Answer: {sanitize_text(data['answer'])}")
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(0, 10, f"Score: {evaluation.get('score', 0)}/100", ln=True)
+            pdf.set_font("Arial", "", 12)
+            pdf.multi_cell(0, 10, f"Feedback: {sanitize_text(evaluation.get('feedback', 'No feedback'))}")
+            missing = evaluation.get('missing_concepts', [])
+            if missing:
+                pdf.set_font("Arial", "B", 12)
+                pdf.cell(0, 10, "Missing concepts:", ln=True)
+                pdf.set_font("Arial", "", 12)
+                for concept in missing:
+                    pdf.cell(0, 10, f"- {sanitize_text(concept)}", ln=True)
+            pdf.ln(5)
+    
+    output_path = f"interview_results_{candidate_name}_{interview_date.replace(':', '-')}.pdf"
+    pdf.output(output_path)
+    return output_path
+
+# Session state initialization
+if "resume_text" not in st.session_state:
+    st.session_state.resume_text = ""
+if "skills" not in st.session_state:
+    st.session_state.skills = {}
+if "questions" not in st.session_state:
+    st.session_state.questions = []
+if "current_question_index" not in st.session_state:
+    st.session_state.current_question_index = 0
+if "evaluations" not in st.session_state:
+    st.session_state.evaluations = {}
+if "interview_complete" not in st.session_state:
+    st.session_state.interview_complete = False
+if "interview_date" not in st.session_state:
+    st.session_state.interview_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+if "chat_messages" not in st.session_state:
+    st.session_state.chat_messages = [{"role": "assistant", "content": random.choice(WELCOME_MESSAGES) + " " + random.choice(RESUME_PROMPTS)}]
+if "candidate_name" not in st.session_state:
+    st.session_state.candidate_name = ""
+if "bot_state" not in st.session_state:
+    st.session_state.bot_state = "wait_for_resume"
+if "max_questions" not in st.session_state:
+    st.session_state.max_questions = 5
+if "debug_skills" not in st.session_state:
+    st.session_state.debug_skills = []
+if "raw_resume_text" not in st.session_state:
+    st.session_state.raw_resume_text = ""
+if "interview_history" not in st.session_state:
+    st.session_state.interview_history = []
+
+def add_message(role, content):
+    st.session_state.chat_messages.append({"role": role, "content": content})
+
+# Main app
+st.title("Technical Interview Chatbot 🤖")
+
+# Sidebar
+with st.sidebar:
+    st.header("Interview Settings")
+    if st.session_state.bot_state in ["wait_for_resume", "analyzing_resume"]:
+        st.info("Upload or paste your resume to begin.")
+    elif st.session_state.bot_state == "interview":
+        st.subheader("Progress")
+        progress = st.session_state.current_question_index / len(st.session_state.questions)
+        st.progress(progress)
+        st.write(f"Question {st.session_state.current_question_index}/{len(st.session_state.questions)}")
+        if st.session_state.skills:
+            st.subheader("Skills Focus")
+            for category, skills in st.session_state.skills.items():
+                with st.expander(category.capitalize()):
+                    st.write(", ".join(skills))
+    elif st.session_state.bot_state == "complete":
+        st.success("Interview Complete!")
+        evaluations = st.session_state.evaluations
+        total_score = sum(data["evaluation"].get("score", 0) for data in evaluations.values())
+        avg_score = total_score / len(evaluations) if evaluations else 0
+        rating = "Excellent" if avg_score >= 85 else "Good" if avg_score >= 70 else "Average" if avg_score >= 50 else "Needs Improvement"
+        st.metric("Overall Score", f"{avg_score:.1f}/100")
+        st.metric("Rating", rating)
+    
+    max_q = st.slider("Number of Questions", min_value=3, max_value=10, value=st.session_state.max_questions)
+    if max_q != st.session_state.max_questions:
+        st.session_state.max_questions = max_q
+    
+    st.subheader("Interview History")
+    if st.session_state.interview_history:
+        for idx, record in enumerate(st.session_state.interview_history):
+            with st.expander(f"Interview {idx+1}: {record['candidate_name']} ({record['date']})"):
+                st.write(f"**Average Score:** {record['avg_score']:.1f}/100")
+                st.write(f"**Rating:** {record['rating']}")
+                st.write("**Skills:**")
+                for category, skills in record['skills'].items():
+                    st.write(f"- {category.capitalize()}: {', '.join(skills)}")
+                st.write("**Questions and Scores:**")
+                for i, q in enumerate(record['questions']):
+                    if q['question'] in record['evaluations']:
+                        eval_data = record['evaluations'][q['question']]
+                        st.write(f"- Q{i+1}: {q['question']} (Score: {eval_data['evaluation'].get('score', 0)}/100)")
+                if st.button(f"Download PDF (Interview {idx+1})", key=f"download_{idx}"):
+                    try:
+                        pdf_path = export_results_as_pdf(record)
+                        with open(pdf_path, "rb") as f:
+                            pdf_bytes = f.read()
+                        pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                        st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{os.path.basename(pdf_path)}">Download PDF</a>', unsafe_allow_html=True)
+                    except Exception as e:
+                        st.error(f"PDF generation error: {e}")
+    
+    if st.button("Start New Interview"):
+        st.session_state.resume_text = ""
+        st.session_state.skills = {}
+        st.session_state.questions = []
+        st.session_state.current_question_index = 0
+        st.session_state.evaluations = {}
+        st.session_state.interview_complete = False
+        st.session_state.bot_state = "wait_for_resume"
+        st.session_state.chat_messages = [{"role": "assistant", "content": random.choice(WELCOME_MESSAGES) + " " + random.choice(RESUME_PROMPTS)}]
+        st.session_state.candidate_name = ""
+        st.session_state.debug_skills = []
+        st.session_state.raw_resume_text = ""
+        st.rerun()
+
+# Main content
+uploaded_file = st.file_uploader("Upload resume (PDF or DOCX)", type=["pdf", "docx"], key="resume_upload")
+chat_container = st.container()
+
+def process_user_input(user_input):
+    add_message("user", user_input)
+    
+    if st.session_state.bot_state == "wait_for_resume":
+        if len(user_input.split()) <= 3 and len(st.session_state.chat_messages) <= 3:
+            st.session_state.candidate_name = user_input
+            add_message("assistant", f"Hi {user_input}! Please upload or paste your resume.")
+            return
+        
+        st.session_state.resume_text = user_input
+        st.session_state.bot_state = "analyzing_resume"
+        add_message("assistant", "Analyzing your resume for skills...")
+        
+        skills = extract_skills(user_input)
+        if not skills:
+            add_message("assistant", "No technical skills found. List some skills (e.g., Python, Java, AWS).")
+            st.session_state.bot_state = "manual_skills"
+        else:
+            st.session_state.skills = skills
+            skill_message = random.choice(SKILL_MESSAGES) + "\n\n" + format_skills_message(skills)
+            if st.session_state.debug_skills:
+                skill_message += "\n\n**Debug Info:**\n" + "\n".join(st.session_state.debug_skills)
+            skill_message += "\n\nAre these correct? Add more skills or type 'start interview'."
+            add_message("assistant", skill_message)
+            st.session_state.bot_state = "confirm_skills"
+    
+    elif st.session_state.bot_state == "manual_skills":
+        skills_input = user_input.lower()
+        manual_skills = {}
+        for category, skill_list in COMMON_SKILLS.items():
+            found_skills = [skill for skill in skill_list if skill in skills_input]
+            if found_skills:
+                manual_skills[category] = found_skills
+        
+        if not manual_skills:
+            manual_skills = {'programming': ['python'], 'tools': ['git']}
+        
+        st.session_state.skills = manual_skills
+        skill_message = "Added skills:\n\n" + format_skills_message(manual_skills) + "\n\nType 'start interview' to begin."
+        add_message("assistant", skill_message)
+        st.session_state.bot_state = "confirm_skills"
+    
+    elif st.session_state.bot_state == "confirm_skills":
+        if any(x in user_input.lower() for x in ["start interview", "ready", "yes"]):
+            technical_questions = generate_technical_questions(st.session_state.skills, st.session_state.max_questions)
+            st.session_state.questions = technical_questions
+            st.session_state.current_question_index = 0
+            first_question = technical_questions[0]["question"] if technical_questions else "Tell me about your tech background."
+            add_message("assistant", f"{random.choice(INTERVIEW_START_MESSAGES)}\n\n**Question 1:** {first_question}")
+            st.session_state.bot_state = "interview"
+        else:
+            new_skills = extract_skills(user_input)
+            if new_skills:
+                for category, skills_list in new_skills.items():
+                    if category in st.session_state.skills:
+                        st.session_state.skills[category].extend([s for s in skills_list if s not in st.session_state.skills[category]])
+                    else:
+                        st.session_state.skills[category] = skills_list
+                add_message("assistant", "Skills updated. Type 'start interview' to begin.")
+            else:
+                add_message("assistant", "Type 'start interview' when ready.")
+    
+    elif st.session_state.bot_state == "interview":
+        current_index = st.session_state.current_question_index
+        current_question = st.session_state.questions[current_index]
+        evaluation = evaluate_answer(
+            question=current_question['question'],
+            answer=user_input,
+            expected_keywords=current_question['expected_keywords']
+        )
+        st.session_state.evaluations[current_question['question']] = {"answer": user_input, "evaluation": evaluation}
+        
+        score = evaluation.get('score', 0)
+        feedback = f"{get_feedback_message(score)}\n\n**Score:** {score}/100\n\n{evaluation.get('feedback', '')}"
+        missing = evaluation.get('missing_concepts', [])
+        if missing:
+            feedback += "\n\n**Improve:**\n" + "\n".join(f"- {concept}" for concept in missing)
+        add_message("assistant", feedback)
+        
+        current_index += 1
+        st.session_state.current_question_index = current_index
+        
+        if current_index < len(st.session_state.questions):
+            next_question = st.session_state.questions[current_index]["question"]
+            add_message("assistant", f"{random.choice(QUESTION_TRANSITIONS)}\n\n**Question {current_index + 1}:** {next_question}")
+        else:
+            st.session_state.bot_state = "complete"
+            st.session_state.interview_complete = True
+            evaluations = st.session_state.evaluations
+            total_score = sum(data["evaluation"].get("score", 0) for data in evaluations.values())
+            avg_score = total_score / len(evaluations) if evaluations else 0
+            rating = "Excellent" if avg_score >= 85 else "Good" if avg_score >= 70 else "Average" if avg_score >= 50 else "Needs Improvement"
+            
+            interview_record = {
+                "candidate_name": st.session_state.candidate_name or "Candidate",
+                "date": st.session_state.interview_date,
+                "avg_score": avg_score,
+                "rating": rating,
+                "skills": st.session_state.skills,
+                "questions": st.session_state.questions,
+                "evaluations": st.session_state.evaluations
+            }
+            st.session_state.interview_history.append(interview_record)
+            
+            add_message("assistant", f"""
+            ## Interview Complete!
+            **Overall Score:** {avg_score:.1f}/100
+            **Rating:** {rating}
+            Options:
+            1. Review answers
+            2. Export PDF
+            3. View history
+            4. Start new interview
+            """)
+    
+    elif st.session_state.bot_state == "complete":
+        if "review" in user_input.lower() or "answers" in user_input.lower():
+            review = "## Your Responses\n\n"
+            for i, q in enumerate(st.session_state.questions):
+                if q['question'] in st.session_state.evaluations:
+                    data = st.session_state.evaluations[q['question']]
+                    evaluation = data["evaluation"]
+                    review += f"### Question {i+1}: {q['question']}\n"
+                    review += f"**Answer:** {data['answer']}\n"
+                    review += f"**Score:** {evaluation.get('score', 0)}/100\n"
+                    review += f"**Feedback:** {evaluation.get('feedback', 'No feedback')}\n"
+                    missing = evaluation.get('missing_concepts', [])
+                    if missing:
+                        review += "**Improve:**\n" + "\n".join(f"- {concept}" for concept in missing)
+                    review += "\n---\n"
+            add_message("assistant", review)
+        
+        elif "pdf" in user_input.lower() or "export" in user_input.lower():
+            try:
+                evaluations = st.session_state.evaluations
+                total_score = sum(data["evaluation"].get("score", 0) for data in evaluations.values())
+                avg_score = total_score / len(evaluations) if evaluations else 0
+                interview_record = {
+                    "candidate_name": st.session_state.candidate_name or "Candidate",
+                    "date": st.session_state.interview_date,
+                    "avg_score": avg_score,
+                    "rating": "Excellent" if avg_score >= 85 else "Good" if avg_score >= 70 else "Average" if avg_score >= 50 else "Needs Improvement",
+                    "skills": st.session_state.skills,
+                    "questions": st.session_state.questions,
+                    "evaluations": st.session_state.evaluations
+                }
+                pdf_path = export_results_as_pdf(interview_record)
+                with open(pdf_path, "rb") as f:
+                    pdf_bytes = f.read()
+                pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                add_message("assistant", f"PDF ready! <a href='data:application/pdf;base64,{pdf_b64}' download='{os.path.basename(pdf_path)}'>Download</a>")
+            except Exception as e:
+                add_message("assistant", f"PDF generation error: {e}")
+        
+        elif "history" in user_input.lower() or "past" in user_input.lower():
+            if not st.session_state.interview_history:
+                add_message("assistant", "No past interviews. Complete one to build history!")
+            else:
+                history_message = "## Interview History\n\n"
+                for idx, record in enumerate(st.session_state.interview_history):
+                    history_message += f"### Interview {idx+1}: {record['candidate_name']} ({record['date']})\n"
+                    history_message += f"**Score:** {record['avg_score']:.1f}/100\n"
+                    history_message += f"**Rating:** {record['rating']}\n"
+                    history_message += "**Skills:**\n"
+                    for category, skills in record['skills'].items():
+                        history_message += f"- {category.capitalize()}: {', '.join(skills)}\n"
+                    history_message += "**Questions:**\n"
+                    for i, q in enumerate(record['questions']):
+                        if q['question'] in record['evaluations']:
+                            eval_data = record['evaluations'][q['question']]
+                            history_message += f"- Q{i+1}: {q['question']}\n"
+                            history_message += f"  - **Answer:** {eval_data['answer']}\n"
+                            history_message += f"  - **Score:** {eval_data['evaluation'].get('score', 0)}/100\n"
+                    history_message += "\n---\n"
+                add_message("assistant", history_message)
+        
+        elif "new" in user_input.lower() or "start" in user_input.lower():
+            st.session_state.resume_text = ""
+            st.session_state.skills = {}
+            st.session_state.questions = []
+            st.session_state.current_question_index = 0
+            st.session_state.evaluations = {}
+            st.session_state.interview_complete = False
+            st.session_state.bot_state = "wait_for_resume"
+            st.session_state.chat_messages = [{"role": "assistant", "content": random.choice(WELCOME_MESSAGES) + " " + random.choice(RESUME_PROMPTS)}]
+            st.session_state.candidate_name = ""
+            st.session_state.debug_skills = []
+            st.session_state.raw_resume_text = ""
+            st.rerun()
+        else:
+            add_message("assistant", """
+            What's next?
+            1. Review answers
+            2. Export PDF
+            3. View history
+            4. Start new interview
+            """)
+
+# Handle file upload
+if uploaded_file is not None and not st.session_state.resume_text:
+    file_extension = uploaded_file.name.split(".")[-1].lower()
+    if file_extension == "pdf":
+        resume_text = extract_text_from_pdf(uploaded_file)
+    elif file_extension == "docx":
+        resume_text = extract_text_from_docx(uploaded_file)
+    else:
+        resume_text = ""
+        st.error("Please upload a PDF or DOCX file.")
+    
+    if resume_text:
+        st.session_state.resume_text = resume_text
+        st.session_state.bot_state = "analyzing_resume"
+        st.session_state.chat_messages = [{"role": "assistant", "content": "Analyzing your resume..."}]
+        skills = extract_skills(resume_text)
+        if not skills:
+            add_message("assistant", "No skills found. List some skills (e.g., Python, Java, AWS).")
+            st.session_state.bot_state = "manual_skills"
+        else:
+            st.session_state.skills = skills
+            skill_message = random.choice(SKILL_MESSAGES) + "\n\n" + format_skills_message(skills)
+            if st.session_state.debug_skills:
+                skill_message += "\n\n**Debug:**\n" + "\n".join(st.session_state.debug_skills)
+            skill_message += "\n\nCorrect? Add skills or type 'start interview'."
+            add_message("assistant", skill_message)
+            st.session_state.bot_state = "confirm_skills"
+
+# Chat interface
+with chat_container:
+    for message in st.session_state.chat_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"], unsafe_allow_html=True)
+    
+    if user_input := st.chat_input("Type here"):
+        process_user_input(user_input)
+        st.rerun()
+
+# Export on completion
+if st.session_state.interview_complete:
+    with st.sidebar:
+        st.subheader("Export")
+        evaluations = st.session_state.evaluations
+        total_score = sum(data["evaluation"].get("score", 0) for data in evaluations.values())
+        avg_score = total_score / len(evaluations) if evaluations else 0
+        if st.button("Generate PDF"):
+            try:
+                interview_record = {
+                    "candidate_name": st.session_state.candidate_name or "Candidate",
+                    "date": st.session_state.interview_date,
+                    "avg_score": avg_score,
+                    "rating": "Excellent" if avg_score >= 85 else "Good" if avg_score >= 70 else "Average" if avg_score >= 50 else "Needs Improvement",
+                    "skills": st.session_state.skills,
+                    "questions": st.session_state.questions,
+                    "evaluations": st.session_state.evaluations
+                }
+                pdf_path = export_results_as_pdf(interview_record)
+                with open(pdf_path, "rb") as f:
+                    pdf_bytes = f.read()
+                pdf_b64 = base64.b64encode(pdf_bytes).decode()
+                st.markdown(f'<a href="data:application/pdf;base64,{pdf_b64}" download="{os.path.basename(pdf_path)}">Download PDF</a>', unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"PDF generation error: {e}")
