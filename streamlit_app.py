@@ -721,8 +721,7 @@ with chat_container:
     
     if user_input := st.chat_input("Type here"):
         process_user_input(user_input)
-        st.rerun()
-
+            st.experimental_rerun()
 # Export on completion
 if st.session_state.interview_complete:
     with st.sidebar:
